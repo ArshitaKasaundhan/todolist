@@ -31,17 +31,17 @@ function rendertask(task) {
   // now diffining what will the content of the span
   span.textContent = task.title;
   // add completed css if is task is completed=1
-  span.classList.toggle("completed", task.is_completed === 1);
+  span.classList.toggle("completed", task.is_completed);
   // now create new button for each
   const donebtn = document.createElement("button");
   // if button crreate add the class list
   donebtn.className = "btn-done";
   // in this you add the text in the button
-  donebtn.textContent = task.is_completed === 1 ? "Undo" : "done";
+  donebtn.textContent = task.is_completed ? "Undo" : "done";
   //if done btn is clicked
   donebtn.addEventListener("click", async () => {
     // we check the new status is it undo or done operation to performm
-    const newstatus = task.is_completed === 1 ? 0 : 1;
+    const newstatus = !task.is_completed;
     // try to fetch the data and get the response
     try {
       const response = await fetch(`/tasks/${task.id}`, {
@@ -49,13 +49,19 @@ function rendertask(task) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: newstatus }),
       });
+
+      if (!response.ok) {
+        const err = await response.json();
+        console.error("task is not updated", err);
+        return;
+      }
       // now the id you fectch
       const updatetask = await response.json();
       // if the task is completed update it
       task.is_completed = updatetask.is_completed;
       // add class list
-      span.classList.toggle("completed", task.is_completed == 1);
-      donebtn.textContent = task.is_completed === 1 ? "Undo" : "done";
+      span.classList.toggle("completed", task.is_completed);
+      donebtn.textContent = task.is_completed ? "Undo" : "done";
     } catch (error) {
       console.log("task is not updated", error);
     }
@@ -67,7 +73,7 @@ function rendertask(task) {
   deletebtn.addEventListener("click", async () => {
     try {
       const response = await fetch(`/tasks/${task.id}`, {
-        method: "delete",
+        method: "DELETE",
       });
       if (response.ok) {
         li.remove();
