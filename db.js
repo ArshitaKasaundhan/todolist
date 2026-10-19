@@ -10,6 +10,13 @@ const pool = new Pool({
 // it is basic initDb function  which export
 export async function initDb() {
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS users(
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL 
+    )`);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       title TEXT NOT NULL,

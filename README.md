@@ -1,95 +1,134 @@
-# To-Do List App
+# Todo List
 
-A simple to-do list website. You can add tasks, mark them as done, and delete them. Your tasks are saved in a database, so they are still there when you refresh the page or restart the server.
+A simple full-stack todo list app. Add tasks, mark them done or undo them, and delete them. Tasks are stored in a PostgreSQL database running in Docker, so they stay saved after a restart.
 
-## What it does
+## Tech Stack
 
-- Add a new task
-- See all your tasks in a list
-- Mark a task as done
+- **Backend:** Node.js, Express 5
+- **Database:** PostgreSQL 16 (Docker), `pg` driver
+- **Frontend:** HTML, CSS, vanilla JavaScript
+- **Config:** dotenv
+
+## Features
+
+- Add a task
+- Mark a task as done / undo
 - Delete a task
-- Tasks are saved permanently in a database file
+- Data persists in PostgreSQL (Docker volume)
+- Input validation and parameterized queries (protects against SQL injection)
 
-## Built with
+## Prerequisites
 
-- **Frontend:** HTML, CSS, JavaScript
-- **Backend:** Node.js and Express
-- **Database:** SQLite (the data is stored in a file called `tasks.db`)
+- [Node.js](https://nodejs.org/) 18 or newer
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (must be running)
 
-## Project structure
+## Setup
+
+1. Clone the repo and install dependencies:
+
+```bash
+   git clone https://github.com/arshita2025/todolist.git
+   cd todolist
+   npm install
+```
+
+2. Create your `.env` file from the example and set your own password
+   (use the same password in both `POSTGRES_PASSWORD` and `DATABASE_URL`):
+
+```bash
+   cp .env.example .env
+```
+
+3. Start PostgreSQL:
+
+```bash
+   docker compose up -d
+   docker compose ps
+```
+
+Wait until `todo-postgres` shows `healthy`.
+
+4. Start the app:
+
+```bash
+   npm run dev
+```
+
+5. Open http://localhost:3000
+
+The `tasks` table is created automatically on the first run.
+
+## Environment Variables
+
+| Variable            | Description                                  | Example                                                            |
+| ------------------- | -------------------------------------------- | ------------------------------------------------------------------ |
+| `POSTGRES_USER`     | Database user                                | `todo_user`                                                        |
+| `POSTGRES_PASSWORD` | Database password                            | `your_password_here`                                               |
+| `POSTGRES_DB`       | Database name                                | `todo_db`                                                          |
+| `POSTGRES_PORT`     | Port on your machine mapped to the container | `5433`                                                             |
+| `DATABASE_URL`      | Connection string used by the app            | `postgresql://todo_user:your_password_here@localhost:5433/todo_db` |
+| `PORT`              | Port the Express server runs on              | `3000`                                                             |
+
+The `.env` file is ignored by git. Never commit it.
+
+## API Endpoints
+
+| Method   | Endpoint     | Body                       | Description                |
+| -------- | ------------ | -------------------------- | -------------------------- |
+| `GET`    | `/tasks`     | none                       | Get all tasks              |
+| `POST`   | `/tasks`     | `{ "title": "Buy milk" }`  | Create a task              |
+| `PATCH`  | `/tasks/:id` | `{ "is_completed": true }` | Mark a task done or undone |
+| `DELETE` | `/tasks/:id` | none                       | Delete a task              |
+
+Example:
+
+```bash
+curl -X POST http://localhost:3000/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"first task"}'
+```
+
+## Database Schema
+
+```sql
+CREATE TABLE tasks (
+  id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN NOT NULL DEFAULT FALSE
+);
+```
+
+## Useful Docker Commands
+
+```bash
+docker compose up -d        # start the database
+docker compose stop         # stop it (data is kept)
+docker compose down         # remove the container (data is kept)
+docker compose down -v      # remove the container AND all data
+docker compose logs postgres
+```
+
+Open the database shell:
+
+```bash
+docker exec -it todo-postgres psql -U todo_user -d todo_db
+```
+
+## Troubleshooting
+
+- **`port is already allocated`:** another Postgres is using the port. Change `POSTGRES_PORT` in `.env` (and the port in `DATABASE_URL`).
+- **`password authentication failed`:** the password in `.env` does not match the one the database volume was created with. Run `docker compose down -v` and `docker compose up -d` to recreate it.
+- **`failed to connect to the docker API`:** Docker Desktop is not running. Start it and try again.
+- **`ECONNREFUSED`:** the database container is not running. Run `docker compose up -d`.
+
+## Project Structure
 
 ```
-Todo-List/
-├── public/
-│   ├── index.html    → the page you see
-│   ├── style.css     → colors and layout
-│   └── app.js        → frontend logic (talks to the backend)
-├── server.js         → the backend server
-├── db.js             → connects to the database
-├── tasks.db          → the database file (created automatically)
-├── .gitignore
+.
+├── docker-compose.yml   # PostgreSQL container
+├── db.js                # database connection and table setup
+├── server.js            # Express server and API routes
+├── public/              # frontend (HTML, CSS, JS)
+├── .env.example         # example environment variables
 └── package.json
 ```
-
-## How to run it on your computer
-
-**1. Install Node.js**
-Download it from nodejs.org. Check it with:
-
-```bash
-node -v
-```
-
-**2. Download the project and install packages**
-
-```bash
-git clone YOUR_REPO_LINK
-cd Todo-List
-npm install
-```
-
-**3. Start the server**
-
-```bash
-node server.js
-```
-
-Or, if you have nodemon (it restarts the server when you save a file):
-
-```bash
-nodemon server.js
-```
-
-You should see: `server is running 3000`
-
-**4. Open the app**
-Go to `http://localhost:3000` in your browser.
-
-No extra setup is needed. There is no password or `.env` file, because SQLite stores everything in one file on your computer.
-
-## How it works (in simple words)
-
-1. You type a task on the page and click **Add Task**.
-2. `app.js` sends the task to the backend using `fetch`.
-3. `server.js` receives it, and `db.js` saves it in the database.
-4. When you open the page again, the tasks are loaded from the database and shown.
-5. **done** and **delete** work the same way: the page tells the backend, and the backend updates the database.
-
-## Notes
-
-- `tasks.db` holds your personal tasks, so it is not uploaded to GitHub (it is listed in `.gitignore`).
-- When someone else runs the project, a fresh empty database is made for them.
-
-## Things I want to add later
-
-- Due dates and priorities
-- Projects and labels
-- Login and user accounts
-- A design closer to the real Todoist
-
-## What I learned
-
-- Building a backend with Node.js and Express
-- Saving data in a database
-- Connecting a frontend to a backend with `fetch`
-- Using `.gitignore` to keep private files out of GitHub
