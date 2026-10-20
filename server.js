@@ -1,9 +1,12 @@
 import "dotenv/config";
+import cookieParser from "cookie-parser";
 import express from "express";
 import pool, { initDb } from "./db.js";
 import authRoutes from "./authRoutes.js";
 const app = express();
 const port = process.env.PORT || 3000;
+
+const isValidId = (id) => /^[1-9]\d*$/.test(id) && Number(id) <= 2147483647;
 
 app.use(express.json());
 app.use("/auth", authRoutes);

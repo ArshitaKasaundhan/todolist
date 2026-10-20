@@ -1,9 +1,12 @@
 import bcrypt from "bcrypt";
 import pool from "./db.js";
 import { Router } from "express";
+import crypto from "node:crypto";
+import { requireAuth } from "./auth.js";
 
 const router = Router();
 const saltRounds = 10;
+const SESSION_DAYs = 7;
 router.post("/register", async (requestAnimationFrame, res) => {
   try {
     const { username, email, password } = requestAnimationFrame.body;
