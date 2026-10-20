@@ -1,15 +1,15 @@
 import bcrypt from "bcrypt";
 import pool from "./db.js";
 import { Router } from "express";
-import crypto from "node:crypto";
-import { requireAuth } from "./auth.js";
+import { setAuthCookie, requireAuth } from "./auth.js";
 
 const router = Router();
 const saltRounds = 10;
-const SESSION_DAYs = 7;
-router.post("/register", async (requestAnimationFrame, res) => {
+const SESSION_DAYS = 7;
+// this is used to register the account
+router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = requestAnimationFrame.body;
+    const { username, email, password } = req.body;
     if (
       typeof username !== "string" ||
       !username.trim() ||
@@ -40,6 +40,7 @@ router.post("/register", async (requestAnimationFrame, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+// it is used to login and if the loginn right give jwt cookie
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -53,14 +54,37 @@ router.post("/login", async (req, res) => {
       [email.trim().toLowerCase()],
     );
     const user = result.rows[0];
-    const isMatch = user && (await bcrypt.compare(password, password_hash));
+    const isMatch =
+      user && (await bcrypt.compare(password, user.password_hash));
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
+    setAuthCookie(res, user.id);
     res.json({ id: user.id, username: user.username, email: user.email });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
+// understandiing which user send the requet by token
+router.get("/me", requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, username, email FROM users WHERE id = $1",
+      [req.userId],
+    );
+    if (result.rowCount === 0) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+router.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logged out" });
+});
+
 export default router;
