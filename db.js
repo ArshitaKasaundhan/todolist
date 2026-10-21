@@ -17,6 +17,13 @@ export async function initDb() {
     password_hash TEXT NOT NULL 
     )`);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
       title TEXT NOT NULL,

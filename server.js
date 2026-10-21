@@ -3,7 +3,10 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import pool, { initDb } from "./db.js";
 import authRoutes from "./authRoutes.js";
+import { connectRedis } from "./redis.js";
+
 const app = express();
+app.use(cookieParser());
 const port = process.env.PORT || 3000;
 
 const isValidId = (id) => /^[1-9]\d*$/.test(id) && Number(id) <= 2147483647;
@@ -107,7 +110,7 @@ app.delete("/tasks/:id", async (req, res) => {
 async function startServer() {
   try {
     await initDb();
-
+    await connectRedis();
     app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });
