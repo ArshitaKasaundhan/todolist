@@ -8,5 +8,5 @@ redis.on("error", (err) => console.error("Redis error:", err));
 export async function connectRedis() {
   await redis.connect();
 }
-
-export default redis;
+export { redis };
+export default connectRedis;

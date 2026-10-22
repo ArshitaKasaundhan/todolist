@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 const TOKEN_DAYS = 7;
-const cookieOptions = {
-  // potect the sid from the frontend so the user cannot access it
+export const cookieOptions = {
+  // protect the sid from the frontend so the user cannot access it
   httpOnly: true,
   // it protect the website CSRF(cross-site request forgery) protect from the attacks
   sameSite: "lax",

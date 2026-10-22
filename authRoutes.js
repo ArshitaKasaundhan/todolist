@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import pool from "./db.js";
-import { createClient } from "redis";
+import connectRedis from "./redis.js";
+import { redis } from "./redis.js";
 import { Router } from "express";
 import { sendOtpEmail } from "./mailer.js";
 import { setAuthCookie, requireAuth } from "./auth.js";
