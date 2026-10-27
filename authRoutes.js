@@ -6,6 +6,7 @@ import { redis } from "./redis.js";
 import { Router } from "express";
 import { sendOtpEmail } from "./mailer.js";
 import { setAuthCookie, requireAuth } from "./auth.js";
+import { error } from "node:console";
 
 const router = Router();
 const saltRounds = 10;
@@ -25,15 +26,24 @@ router.post("/register", async (req, res) => {
     const { username, email, password } = req.body;
     if (
       typeof username !== "string" ||
-      !username.trim() ||
+      !username() ||
       typeof email !== "string" ||
-      !email.trim() ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
       typeof password !== "string" ||
-      !password
+      password.length < 8
     ) {
       return res
         .status(400)
         .json({ error: "Username,email,password are required" });
+    }
+    const normalEmail = email.trim().toLowerCase();
+    const existing = await pool.query("SELECT id FROM users WHERE email=$1", [
+      [normalEmail],
+    ]);
+    if (existing.rowCount > 0) {
+      return res.status(409).json({
+        error: "Email is registered",
+      });
     }
     const hash = await bcrypt.hash(password, saltRounds);
 
