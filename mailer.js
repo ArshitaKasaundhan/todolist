@@ -29,3 +29,16 @@ export async function sendOtpEmail(to, otp) {
            <p>It is valid for ${minutes} minutes. Do not share it with anyone.</p>`,
   });
 }
+export async function sendVerificationEmail(to, link) {
+  if (!process.env.SMTP_USER) {
+    console.log(`[DEV] verification email for ${to}: ${link}`);
+    return;
+  }
+
+  await transporter.sendMail({
+    from: process.env.MAIL_FROM,
+    to,
+    subject: "email you login",
+    text: ` Welcome! Verify your email by opening this link: ${link}\nThe link is valid for 24 hours.`,
+  });
+}

@@ -16,7 +16,10 @@ export async function initDb() {
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL 
     )`);
-
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE
+  `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
