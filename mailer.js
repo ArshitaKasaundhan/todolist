@@ -38,7 +38,7 @@ export async function sendVerificationEmail(to, link) {
   await transporter.sendMail({
     from: process.env.MAIL_FROM,
     to,
-    subject: "email you login",
-    text: ` Welcome! Verify your email by opening this link: ${link}\nThe link is valid for 24 hours.`,
+    subject: "verify",
+    text: ` Welcome! Verify our email by opening this link: ${link}\nThe link is valid for 24 hours.`,
   });
 }

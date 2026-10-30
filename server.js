@@ -19,16 +19,16 @@ app.post("/tasks", requireAuth, async (req, res) => {
   // basically we here request title value
   //  const title=req.body.title; it is good if the ouput is only one but if multipe possibilityy you need to write lot of code that why use destructor
   try {
-    const { title } = req.body.title;
+    const { title } = req.body;
     // here we are checking is title empty aur user send a multiple space instead of sending the task
     if (typeof title !== "string" || !title.trim()) {
       // if the title is empty respond 400 status and at frontend send the part
       return res.status(400).json({ error: "title not found" });
     }
-    // if i directly pass the task then it will create the prblm mayebe the hacjker send he dat i that why the table get deleted that why i create the space for it
+    // if i directly pass the task then it will create the prblm mayebe the hacker send he data i that why the table get deleted that why i create the space for it
     const result = await pool.query(
-      "INSERT INTO tasks (title,user_id) VALUES ($1,$2) RETURNING * ",
-      [title.trim(), req.user_id],
+      "INSERT INTO tasks (title,userId) VALUES ($1,$2) RETURNING * ",
+      [title.trim(), req.userId],
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -40,8 +40,8 @@ app.get("/tasks", requireAuth, async (req, res) => {
   //prepare the data that i want to slect from the the table
   try {
     const result = await pool.query(
-      "SELECT * FROM tasks WHERE user_id=$1 ORDER BY id",
-      [req.user_id],
+      "SELECT * FROM tasks WHERE userId=$1 ORDER BY id",
+      [req.userId],
     );
     // now take out all the the data and respond
     // send the status at the backendd and data at fontend
@@ -72,9 +72,9 @@ app.patch("/tasks/:id", requireAuth, async (req, res) => {
     const result = await pool.query(
       `UPDATE tasks
        SET is_completed = $1
-       WHERE id = $2 AND user_id=$3
+       WHERE id = $2 AND userId=$3
        RETURNING *`,
-      [is_completed, id, req.user_id],
+      [is_completed, id, req.userId],
     );
     // means the task you update now prepare the database annd get by id and update the same task in the frontend
     if (result.rowCount === 0) {
@@ -94,8 +94,8 @@ app.delete("/tasks/:id", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid task ID" });
     }
     const result = await pool.query(
-      "DELETE FROM tasks WHERE id = $1 AND user_id=$2 RETURNING id",
-      [id, req.user_id],
+      "DELETE FROM tasks WHERE id = $1 AND userId=$2 RETURNING id",
+      [id, req.userId],
     );
 
     if (result.rowCount === 0) {

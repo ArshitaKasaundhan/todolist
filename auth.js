@@ -1,4 +1,7 @@
 import jwt from "jsonwebtoken";
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET missing");
+}
 const TOKEN_DAYS = 7;
 export const cookieOptions = {
   // protect the sid from the frontend so the user cannot access it
@@ -12,6 +15,7 @@ export const cookieOptions = {
 export function setAuthCookie(res, userId) {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: `${TOKEN_DAYS}d`,
+    algorithm: ["HS256"],
   });
   res.cookie("token", token, cookieOptions);
 }
@@ -23,7 +27,9 @@ export function requireAuth(req, res, next) {
   }
   try {
     // it is used to verify the token
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ["HS256"],
+    });
     req.userId = payload.userId;
     next();
   } catch {

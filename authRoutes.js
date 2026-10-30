@@ -27,7 +27,7 @@ async function sendVerification(userId, email) {
   console.log("token saved");
   const base = process.env.APP_URL || "http://localhost:3000";
   console.log("verifiaction link");
-  const link = `${base}/auth/verify-email?token=${token}`;
+  const link = `${base}/auth/verify_email?token=${token}`;
   console.log("Verification link:", link);
   await sendVerificationEmail(email, link);
 }
@@ -41,7 +41,7 @@ router.post("/register", async (req, res) => {
       typeof email !== "string" ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
       typeof password !== "string" ||
-      password.length < 9
+      password.length < 8
     ) {
       return res.status(400).json({
         error: "Username,email,password(minimum 8 character) are required",
@@ -197,7 +197,6 @@ router.get("/verify-email", async (req, res) => {
     if (result.rowCount === 0) {
       return res.status(400).json({ error: "User not found" });
     }
-    setAuthCookie(res, Number(userId));
     res.redirect("/");
   } catch (error) {
     console.error(error);
@@ -208,7 +207,7 @@ router.post("/resend", async (req, res) => {
   try {
     const { email } = req.body;
     if (typeof email !== "string") {
-      return res.status(400).json({ erroor: "Email is required" });
+      return res.status(400).json({ error: "Email is required" });
     }
     const cleanEmail = email.trim().toLowerCase();
     const result = await pool.query(
