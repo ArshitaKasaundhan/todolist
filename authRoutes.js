@@ -178,6 +178,7 @@ router.post("/verify-otp", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 router.get("/verify-email", async (req, res) => {
   try {
     const { token } = req.query;
@@ -203,6 +204,7 @@ router.get("/verify-email", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 router.post("/resend", async (req, res) => {
   try {
     const { email } = req.body;
@@ -235,6 +237,7 @@ router.post("/resend", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 // understanding which user send the requet by token
 router.get("/me", requireAuth, async (req, res) => {
   try {
@@ -251,7 +254,18 @@ router.get("/me", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-router.post("/logout", (req, res) => {
+
+router.post("/logout", async (req, res) => {
+  const token = req.cookies.token;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: ["HS256"],
+      });
+      const ttl = payload.exp - Math.floor(Date.now() / 1000);
+      if (ttl > 0) await redis.set(`b1:${payload.jti}`, "1", { EX: ttl });
+    } catch (error) {}
+  }
   res.clearCookie("token");
   res.json({ message: "Logged out" });
 });
