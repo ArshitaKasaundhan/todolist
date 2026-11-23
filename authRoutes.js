@@ -83,6 +83,38 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const generic = {
+      message: "if email is valid.otp is sent",
+    };
+    const result = await pool.query("SELECT id from users WHERE email= $1", [
+      cleanEmail,
+    ]);
+    if (result.rowCount == 0) return res.json(generic);
+    const allowed = await redis.set(`reset_cooldown:${cleanEmail}`, "1", {
+      NX: true,
+      EX: 60,
+    });
+    if (!allowed) {
+      return res.status(429).json({ error: "wait till 60 seconds." });
+    }
+    const otp = generateOtp();
+    const hashOpt = await bcrypt.hash(otp, saltRounds);
+    await redis.set(`otp:{cleanEmail}`, hashOpt, { EX: 300 });
+    await redis.set(`reset_cooldown:{cleanEmail}`, "0", { EX: 300 });
+    await sendResetEmail(cleanEmail, otp);
+  } catch (error) {
+    return res.status(500).json({
+      error: "something wrong",
+    });
+  }
+});
 // it is used to login and if the loginn right give jwt cookie
 router.post("/login", async (req, res) => {
   try {
@@ -179,6 +211,51 @@ router.post("/verify-otp", async (req, res) => {
   }
 });
 
+router.post("/reset_password", async (req, res) => {
+  try {
+    const { oldPassword, newPassword, confirmPassword } = req.body;
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        error: "enter all the field",
+      });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        error: "password must be more then 8 length",
+      });
+    }
+    const result = await pool.query(
+      "SELECT password_hash from users WHERE id =$1",
+      [req.user.id],
+    );
+    if (result.rowCount == 0) {
+      return res.status(404).json({
+        error: "user not found ",
+      });
+    }
+    const match = await bcrypt.compare(
+      oldPassword,
+      result.rows[0].password_hash,
+    );
+    if (!match) {
+      return res.status(401).json({
+        error: "password does not match",
+      });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    await pool.query("UPDATE users SET password_hash=$1 WHERE id =$2", [
+      hashedPassword,
+      req.user.id,
+    ]);
+    return res.json({
+      message: "password change successfully",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "something went wrong",
+    });
+  }
+});
 router.get("/verify-email", async (req, res) => {
   try {
     const { token } = req.query;
@@ -263,7 +340,7 @@ router.post("/logout", async (req, res) => {
         algorithms: ["HS256"],
       });
       const ttl = payload.exp - Math.floor(Date.now() / 1000);
-      if (ttl > 0) await redis.set(`b1:${payload.jti}`, "1", { EX: ttl });
+      if (ttl > 0) await rkyedis.set(`b1:${payload.jti}`, "1", { EX: ttl });
     } catch (error) {}
   }
   res.clearCookie("token");
