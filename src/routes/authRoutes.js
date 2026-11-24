@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
-import pool from "./db.js";
-import connectRedis from "./redis.js";
-import { redis } from "./redis.js";
+import pool from "../src/config/db.js";
+import connectRedis from "../src/config/redis.js";
+import { redis } from "../src/config/redis.js";
 import { Router } from "express";
-import { sendOtpEmail, sendVerificationEmail } from "./mailer.js";
+import { sendOtpEmail, sendVerificationEmail } from "../services/mailer.js";
 import { setAuthCookie, requireAuth } from "./auth.js";
 const VERIFY_TTL = 86400;
 const router = Router();

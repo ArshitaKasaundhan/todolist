@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
-import { redis } from "./redis.js";
-import connectRedis from "./redis.js";
+import { redis } from "./config/redis.js";
+import connectRedis from "./config/redis.js";
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET missing");
 }
@@ -30,7 +30,7 @@ export async function requireAuth(req, res, next) {
   if (!token) {
     return res.status(401).json({ error: "Login required" });
   }
-  
+
   try {
     // it is used to verify the token
     const payload = jwt.verify(token, process.env.JWT_SECRET, {
@@ -40,9 +40,7 @@ export async function requireAuth(req, res, next) {
     if (revoke) return res.status(401).json({ error: "loged out" });
     req.userId = payload.userId;
     next();
-    
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
   }
 }
-

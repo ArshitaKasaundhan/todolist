@@ -1,9 +1,9 @@
 import "dotenv/config";
 import cookieParser from "cookie-parser";
 import express from "express";
-import pool, { initDb } from "./db.js";
-import connectRedis from "./redis.js";
-import authRoutes from "./authRoutes.js";
+import pool, { initDb } from "./src/config/db.js";
+import connectRedis from "./src/config/redis.js";
+import authRoutes from "./routes/authRoutes.js";
 import { requireAuth } from "./auth.js";
 const app = express();
 app.use(cookieParser());
