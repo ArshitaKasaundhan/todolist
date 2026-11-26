@@ -150,4 +150,39 @@ function mountCrud(
       handleErrror(res, error);
     }
   });
+  router.patch(`${path}/:id`, async (req, res) => {
+    try {
+      if (!IsValidId(req.params.id)) {
+        return res.status(400).json({ error: "invalid user" });
+      }
+      const { data, error } = collect(req.body, rules);
+      if (error) res.status(400).json({ error });
+      const cols = Object.keys(data);
+      if (cols.length == 0) {
+        return res.status(400).json({ error: "nothing found" });
+      }
+      // ....
+      const sets = cols.map((c, i) => `${c}=$${i + 1}`).join(", ");
+      const n = cols.length;
+      const result = await pool.query(
+        `UPDATE ${table} SET ${sets}
+  WHERE id =$${n + 1} AND user_id=$${n + 2}$(scopecols(n+3))
+  RETURNING *${extra}`,
+        [
+          ...cols.map(
+            (c) => data([c]),
+            req.params.id,
+            req.user_id,
+            ...scopeValues,
+          ),
+        ],
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "NO CHANGE to made" });
+      }
+      res.json(result.row[0]);
+    } catch (error) {
+      handleErrror(res, error);
+    }
+  });
 }
