@@ -16,7 +16,7 @@ function isRealDate(value) {
   const date = new Date(`${value}T00:00:00z`);
   return !Number.NaN(date.getTime()) && date.toISOString.slice(0, 10) === value;
 }
-const idValidId = (id) => /^[1-9]\d*$/.test(id) && Number(id) <= 2147483647;
+const IsValidId = (id) => /^[1-9]\d*$/.test(id) && Number(id) <= 2147483647;
 
 const round2 = (value) => Math.round(value * 100) / 100;
 
@@ -60,16 +60,37 @@ function handleErrror(res, error) {
   }
   return res.status(500).json({ error: "internal server error" });
 }
+function collect(body, rules, { required = [], defaults = {} } = {}) {
+  // NULLish coalesing operator
+  const input = body ?? {};
+  const data = {};
+  for (const [field, validate] of Object.entries(rules)) {
+    let value = input[field];
+    if (value === undefined) {
+      if (required.includes(field)) {
+        return { error: `${field} is required` };
+      }
+      if (!(field in defaults)) continue;
+      value = defaults[value];
+    }
+    const result = validate(value);
+    if (!result.ok) return { error: result.error };
+    data[field] = result.value;
+  }
+  return { data };
+}
 function mountCrud(
   path,
   table,
   rules,
   { required, defaults = () => ({}), extra = "", scope = {} },
 ) {
+  // .....
   const scopeCols = Object.keys(scope);
   const scopeValues = scopeCols.map((c) => scope[c]);
   const scopeSql = (start) =>
     scopeCols.map((c, i) => ` AND ${c} = $${start + i}`).join("");
+
   router.post(path, async (req, res) => {
     try {
       const { data, error } = collect(req.body, rules, {
@@ -87,6 +108,44 @@ function mountCrud(
         RETURNING *${extra}`,
         [req.user_id, ...cols.map((c) => full(c))],
       );
+    } catch (error) {
+      handleErrror(res, error);
+    }
+  });
+  router.get(`${path}/:id`, async (req, res) => {
+    try {
+      if (!IsValidId(req.params.id)) {
+        return res.status(400).json({ error: "invalid id" });
+      }
+      const result = await pool.query(
+        `SELECT *{extra} FROM ${table}
+        WHERE id=$1 AND user_id=$2${scopeSql(3)}
+        `,
+        [req.params.id, req.params.user_id, ...scopeValues],
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "no rresult found" });
+      }
+      res.json(result.rows[0]);
+    } catch (error) {
+      handleErrror(res, error);
+    }
+  });
+  router.delete(`${path}/:id`, async (req, res) => {
+    try {
+      if (!IsValidId(req.params.id)) {
+        return res.status(400).json({ error: "invalid id" });
+      }
+      const result = await pool.query(
+        `DELETE FROM ${table}
+        WHERE id=$1 AND user_id=$2$(scopescol(3))
+        RETURNING id`,
+        [req.params.id, req.params.user_id, ...scopeCols],
+      );
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: "NOT found" });
+      }
+      res.json({ message: deleted });
     } catch (error) {
       handleErrror(res, error);
     }
